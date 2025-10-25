@@ -16,7 +16,9 @@ contract DeployScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        InstitutionRegistry institutionRegistry = new InstitutionRegistry(admin);
+        InstitutionRegistry institutionRegistry = new InstitutionRegistry(
+            admin
+        );
         TemplateManager templateManager = new TemplateManager(admin);
         CertificateRegistry certificateRegistry = new CertificateRegistry(
             address(institutionRegistry),
@@ -24,10 +26,23 @@ contract DeployScript is Script {
             "ipfs://base-uri/"
         );
 
-        institutionRegistry.setCertificateRegistry(address(certificateRegistry));
-        institutionRegistry.grantRole(institutionRegistry.REGISTRY_ROLE(), address(certificateRegistry));
+        institutionRegistry.setCertificateRegistry(
+            address(certificateRegistry)
+        );
+        institutionRegistry.grantRole(
+            institutionRegistry.REGISTRY_ROLE(),
+            address(certificateRegistry)
+        );
 
-        templateManager.grantRole(templateManager.REGISTRY_ROLE(), address(certificateRegistry));
+        certificateRegistry.grantRole(
+            certificateRegistry.REGISTRY_ROLE(),
+            address(institutionRegistry)
+        );
+
+        templateManager.grantRole(
+            templateManager.REGISTRY_ROLE(),
+            address(certificateRegistry)
+        );
         certificateRegistry.setTemplateManager(address(templateManager));
 
         vm.stopBroadcast();

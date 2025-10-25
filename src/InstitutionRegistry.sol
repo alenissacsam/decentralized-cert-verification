@@ -63,7 +63,11 @@ contract InstitutionRegistry is AccessControl {
         if (_institutions[institution].registeredAt != 0) {
             revert InstitutionAlreadyRegistered(institution);
         }
-        if (bytes(name).length == 0 || bytes(logoIpfsHash).length == 0 || bytes(contactInfo).length == 0) {
+        if (
+            bytes(name).length == 0 ||
+            bytes(logoIpfsHash).length == 0 ||
+            bytes(contactInfo).length == 0
+        ) {
             revert EmptyField();
         }
 
@@ -87,10 +91,13 @@ contract InstitutionRegistry is AccessControl {
      * @notice Verifies an institution after due diligence.
      * @param institution Address of the institution to verify.
      */
-    function verifyInstitution(address institution) external onlyRole(ADMIN_ROLE) {
+    function verifyInstitution(
+        address institution
+    ) external onlyRole(ADMIN_ROLE) {
         if (institution == address(0)) revert ZeroAddress();
         Institution storage info = _institutions[institution];
-        if (info.registeredAt == 0) revert InstitutionNotRegistered(institution);
+        if (info.registeredAt == 0)
+            revert InstitutionNotRegistered(institution);
         if (info.verified) revert InstitutionAlreadyVerified(institution);
 
         info.verified = true;
@@ -108,13 +115,17 @@ contract InstitutionRegistry is AccessControl {
      * @param logoIpfsHash Updated IPFS hash for logo/branding.
      * @param contactInfo Updated contact metadata.
      */
-    function updateInstitutionInfo(string calldata logoIpfsHash, string calldata contactInfo) external {
+    function updateInstitutionInfo(
+        string calldata logoIpfsHash,
+        string calldata contactInfo
+    ) external {
         if (bytes(logoIpfsHash).length == 0 || bytes(contactInfo).length == 0) {
             revert EmptyField();
         }
 
         Institution storage info = _institutions[_msgSender()];
-        if (info.registeredAt == 0) revert InstitutionNotRegistered(_msgSender());
+        if (info.registeredAt == 0)
+            revert InstitutionNotRegistered(_msgSender());
 
         info.logoIpfsHash = logoIpfsHash;
         info.contactInfo = contactInfo;
@@ -127,10 +138,13 @@ contract InstitutionRegistry is AccessControl {
      * @dev Only callable by addresses with REGISTRY_ROLE.
      * @param institution Target institution address.
      */
-    function incrementCertificateCount(address institution) external onlyRole(REGISTRY_ROLE) {
+    function incrementCertificateCount(
+        address institution
+    ) external onlyRole(REGISTRY_ROLE) {
         if (institution == address(0)) revert ZeroAddress();
         Institution storage info = _institutions[institution];
-        if (info.registeredAt == 0) revert InstitutionNotRegistered(institution);
+        if (info.registeredAt == 0)
+            revert InstitutionNotRegistered(institution);
 
         unchecked {
             ++info.totalCertificatesIssued;
@@ -141,10 +155,13 @@ contract InstitutionRegistry is AccessControl {
      * @notice Returns institution information.
      * @param institution Institution address.
      */
-    function getInstitution(address institution) external view returns (Institution memory) {
+    function getInstitution(
+        address institution
+    ) external view returns (Institution memory) {
         if (institution == address(0)) revert ZeroAddress();
         Institution memory info = _institutions[institution];
-        if (info.registeredAt == 0) revert InstitutionNotRegistered(institution);
+        if (info.registeredAt == 0)
+            revert InstitutionNotRegistered(institution);
         return info;
     }
 
@@ -152,7 +169,9 @@ contract InstitutionRegistry is AccessControl {
      * @notice Sets the certificate registry that can manage institution state.
      * @param registry Address of the certificate registry contract.
      */
-    function setCertificateRegistry(address registry) external onlyRole(ADMIN_ROLE) {
+    function setCertificateRegistry(
+        address registry
+    ) external onlyRole(ADMIN_ROLE) {
         if (registry == address(0)) revert ZeroAddress();
         certificateRegistry = ICertificateRegistry(registry);
         emit CertificateRegistrySet(registry);
@@ -162,7 +181,9 @@ contract InstitutionRegistry is AccessControl {
      * @notice Returns institution storage without reverting when missing.
      * @param institution Address to query.
      */
-    function institutionExists(address institution) external view returns (bool) {
+    function institutionExists(
+        address institution
+    ) external view returns (bool) {
         return _institutions[institution].registeredAt != 0;
     }
 }

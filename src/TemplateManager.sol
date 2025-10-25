@@ -54,7 +54,8 @@ contract TemplateManager is AccessControl {
         bool isPublic,
         string calldata category
     ) external onlyRole(ISSUER_ROLE) returns (uint256 templateId) {
-        if (bytes(ipfsHash).length == 0 || bytes(category).length == 0) revert EmptyField();
+        if (bytes(ipfsHash).length == 0 || bytes(category).length == 0)
+            revert EmptyField();
 
         templateId = ++templateCounter;
 
@@ -77,7 +78,9 @@ contract TemplateManager is AccessControl {
      * @notice Returns template metadata.
      * @param templateId Template identifier.
      */
-    function getTemplate(uint256 templateId) external view returns (Template memory) {
+    function getTemplate(
+        uint256 templateId
+    ) external view returns (Template memory) {
         Template memory record = _templates[templateId];
         if (record.createdAt == 0) revert TemplateNotFound(templateId);
         return record;
@@ -94,7 +97,9 @@ contract TemplateManager is AccessControl {
      * @notice Returns template identifiers created by an institution.
      * @param institution Target institution address.
      */
-    function getInstitutionTemplates(address institution) external view returns (uint256[] memory) {
+    function getInstitutionTemplates(
+        address institution
+    ) external view returns (uint256[] memory) {
         if (institution == address(0)) revert ZeroAddress();
         return _institutionTemplates[institution];
     }
@@ -103,7 +108,9 @@ contract TemplateManager is AccessControl {
      * @notice Increments usage metrics, callable by the certificate registry.
      * @param templateId Target template identifier.
      */
-    function incrementUsageCount(uint256 templateId) external onlyRole(REGISTRY_ROLE) {
+    function incrementUsageCount(
+        uint256 templateId
+    ) external onlyRole(REGISTRY_ROLE) {
         Template storage record = _templates[templateId];
         if (record.createdAt == 0) revert TemplateNotFound(templateId);
 
@@ -119,7 +126,9 @@ contract TemplateManager is AccessControl {
      * @dev Convenience helper for admins.
      * @param institution Recipient institution address.
      */
-    function grantIssuerRole(address institution) external onlyRole(ADMIN_ROLE) {
+    function grantIssuerRole(
+        address institution
+    ) external onlyRole(ADMIN_ROLE) {
         if (institution == address(0)) revert ZeroAddress();
         _grantRole(ISSUER_ROLE, institution);
     }

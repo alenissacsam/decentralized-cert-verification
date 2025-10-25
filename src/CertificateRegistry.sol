@@ -13,7 +13,12 @@ import {TemplateManager} from "./TemplateManager.sol";
  * @title CertificateRegistry
  * @notice ERC-1155 based registry for issuing and managing certificates.
  */
-contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuard {
+contract CertificateRegistry is
+    ERC1155,
+    AccessControl,
+    Pausable,
+    ReentrancyGuard
+{
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant ISSUER_ROLE = keccak256("ISSUER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
@@ -46,12 +51,22 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
         address indexed recipient,
         string ipfsHash
     );
-    event BatchCertificateIssued(uint256[] certificateIds, address indexed issuer, address[] recipients);
-    event CertificateRevoked(uint256 indexed certificateId, address indexed issuer);
+    event BatchCertificateIssued(
+        uint256[] certificateIds,
+        address indexed issuer,
+        address[] recipients
+    );
+    event CertificateRevoked(
+        uint256 indexed certificateId,
+        address indexed issuer
+    );
     event InstitutionAuthorized(address indexed institution);
     event InstitutionDeauthorized(address indexed institution);
     event TemplateManagerSet(address indexed templateManager);
-    event CertificateTemplateLinked(uint256 indexed certificateId, uint256 indexed templateId);
+    event CertificateTemplateLinked(
+        uint256 indexed certificateId,
+        uint256 indexed templateId
+    );
 
     error ZeroAddress();
     error EmptyField();
@@ -60,8 +75,13 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
     error AlreadyRevoked(uint256 certificateId);
     error InstitutionNotVerified(address institution);
 
-    constructor(address institutionRegistry_, address admin, string memory baseUri) ERC1155(baseUri) {
-        if (institutionRegistry_ == address(0) || admin == address(0)) revert ZeroAddress();
+    constructor(
+        address institutionRegistry_,
+        address admin,
+        string memory baseUri
+    ) ERC1155(baseUri) {
+        if (institutionRegistry_ == address(0) || admin == address(0))
+            revert ZeroAddress();
 
         institutionRegistry = InstitutionRegistry(institutionRegistry_);
 
@@ -76,7 +96,9 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
      * @notice Sets the template manager contract used for tracking template usage.
      * @param templateManager_ Address of the template manager contract.
      */
-    function setTemplateManager(address templateManager_) external onlyRole(ADMIN_ROLE) {
+    function setTemplateManager(
+        address templateManager_
+    ) external onlyRole(ADMIN_ROLE) {
         if (templateManager_ == address(0)) revert ZeroAddress();
         templateManager = TemplateManager(templateManager_);
         emit TemplateManagerSet(templateManager_);
@@ -93,15 +115,27 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
         address recipient,
         string calldata ipfsHash,
         string calldata certificateType
-    ) external nonReentrant whenNotPaused onlyRole(ISSUER_ROLE) returns (uint256 certificateId) {
+    )
+        external
+        nonReentrant
+        whenNotPaused
+        onlyRole(ISSUER_ROLE)
+        returns (uint256 certificateId)
+    {
         if (recipient == address(0)) revert ZeroAddress();
-        if (bytes(ipfsHash).length == 0 || bytes(certificateType).length == 0) revert EmptyField();
+        if (bytes(ipfsHash).length == 0 || bytes(certificateType).length == 0)
+            revert EmptyField();
         address issuer = _msgSender();
         if (!institutionRegistry.verifiedInstitutions(issuer)) {
             revert InstitutionNotVerified(issuer);
         }
 
-        certificateId = _issueCertificateInternal(issuer, recipient, ipfsHash, certificateType);
+        certificateId = _issueCertificateInternal(
+            issuer,
+            recipient,
+            ipfsHash,
+            certificateType
+        );
 
         emit CertificateIssued(certificateId, issuer, recipient, ipfsHash);
     }
@@ -119,15 +153,27 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
         string calldata ipfsHash,
         string calldata certificateType,
         uint256 templateId
-    ) external nonReentrant whenNotPaused onlyRole(ISSUER_ROLE) returns (uint256 certificateId) {
+    )
+        external
+        nonReentrant
+        whenNotPaused
+        onlyRole(ISSUER_ROLE)
+        returns (uint256 certificateId)
+    {
         if (recipient == address(0)) revert ZeroAddress();
-        if (bytes(ipfsHash).length == 0 || bytes(certificateType).length == 0) revert EmptyField();
+        if (bytes(ipfsHash).length == 0 || bytes(certificateType).length == 0)
+            revert EmptyField();
         address issuer = _msgSender();
         if (!institutionRegistry.verifiedInstitutions(issuer)) {
             revert InstitutionNotVerified(issuer);
         }
 
-        certificateId = _issueCertificateInternal(issuer, recipient, ipfsHash, certificateType);
+        certificateId = _issueCertificateInternal(
+            issuer,
+            recipient,
+            ipfsHash,
+            certificateType
+        );
         emit CertificateIssued(certificateId, issuer, recipient, ipfsHash);
         _linkTemplate(certificateId, templateId);
     }
@@ -143,7 +189,13 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
         address[] calldata recipients,
         string[] calldata ipfsHashes,
         string calldata certificateType
-    ) external nonReentrant whenNotPaused onlyRole(ISSUER_ROLE) returns (uint256[] memory certificateIds) {
+    )
+        external
+        nonReentrant
+        whenNotPaused
+        onlyRole(ISSUER_ROLE)
+        returns (uint256[] memory certificateIds)
+    {
         uint256 length = recipients.length;
         if (length == 0 || length != ipfsHashes.length) revert EmptyField();
         if (bytes(certificateType).length == 0) revert EmptyField();
@@ -156,9 +208,15 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
 
         for (uint256 i = 0; i < length; ) {
             address recipient = recipients[i];
-            if (recipient == address(0) || bytes(ipfsHashes[i]).length == 0) revert EmptyField();
+            if (recipient == address(0) || bytes(ipfsHashes[i]).length == 0)
+                revert EmptyField();
 
-            uint256 certId = _issueCertificateInternal(issuer, recipient, ipfsHashes[i], certificateType);
+            uint256 certId = _issueCertificateInternal(
+                issuer,
+                recipient,
+                ipfsHashes[i],
+                certificateType
+            );
             certificateIds[i] = certId;
 
             emit CertificateIssued(certId, issuer, recipient, ipfsHashes[i]);
@@ -184,25 +242,48 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
         string[] calldata ipfsHashes,
         string calldata certificateType,
         uint256[] calldata templateIds
-    ) external nonReentrant whenNotPaused onlyRole(ISSUER_ROLE) returns (uint256[] memory certificateIds) {
-        uint256 length = recipients.length;
-        if (length == 0 || length != ipfsHashes.length || length != templateIds.length) revert EmptyField();
+    )
+        external
+        nonReentrant
+        whenNotPaused
+        onlyRole(ISSUER_ROLE)
+        returns (uint256[] memory certificateIds)
+    {
+        if (
+            recipients.length == 0 ||
+            recipients.length != ipfsHashes.length ||
+            recipients.length != templateIds.length
+        ) {
+            revert EmptyField();
+        }
         if (bytes(certificateType).length == 0) revert EmptyField();
-        address issuer = _msgSender();
-        if (!institutionRegistry.verifiedInstitutions(issuer)) {
-            revert InstitutionNotVerified(issuer);
+        if (!institutionRegistry.verifiedInstitutions(_msgSender())) {
+            revert InstitutionNotVerified(_msgSender());
         }
 
-        certificateIds = new uint256[](length);
+        certificateIds = new uint256[](recipients.length);
 
-        for (uint256 i = 0; i < length; ) {
-            address recipient = recipients[i];
-            if (recipient == address(0) || bytes(ipfsHashes[i]).length == 0) revert EmptyField();
+        for (uint256 i = 0; i < recipients.length; ) {
+            address currentRecipient = recipients[i];
+            if (currentRecipient == address(0)) revert ZeroAddress();
 
-            uint256 certId = _issueCertificateInternal(issuer, recipient, ipfsHashes[i], certificateType);
+            string memory currentHash = ipfsHashes[i];
+            if (bytes(currentHash).length == 0) revert EmptyField();
+
+            uint256 certId = _issueCertificateInternal(
+                _msgSender(),
+                currentRecipient,
+                currentHash,
+                certificateType
+            );
             certificateIds[i] = certId;
 
-            emit CertificateIssued(certId, issuer, recipient, ipfsHashes[i]);
+            emit CertificateIssued(
+                certId,
+                _msgSender(),
+                currentRecipient,
+                currentHash
+            );
             _linkTemplate(certId, templateIds[i]);
 
             unchecked {
@@ -210,14 +291,16 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
             }
         }
 
-        emit BatchCertificateIssued(certificateIds, issuer, recipients);
+        emit BatchCertificateIssued(certificateIds, _msgSender(), recipients);
     }
 
     /**
      * @notice Returns certificate metadata for verification.
      * @param certificateId Certificate identifier.
      */
-    function verifyCertificate(uint256 certificateId) external view returns (Certificate memory) {
+    function verifyCertificate(
+        uint256 certificateId
+    ) external view returns (Certificate memory) {
         Certificate memory cert = certificates[certificateId];
         if (cert.issuedAt == 0) revert CertificateNotFound(certificateId);
         return cert;
@@ -227,10 +310,13 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
      * @notice Revokes an issued certificate without burning the token.
      * @param certificateId Target certificate identifier.
      */
-    function revokeCertificate(uint256 certificateId) external whenNotPaused onlyRole(ISSUER_ROLE) {
+    function revokeCertificate(
+        uint256 certificateId
+    ) external whenNotPaused onlyRole(ISSUER_ROLE) {
         Certificate storage cert = certificates[certificateId];
         if (cert.issuedAt == 0) revert CertificateNotFound(certificateId);
-        if (cert.issuer != _msgSender()) revert NotCertificateIssuer(certificateId, _msgSender());
+        if (cert.issuer != _msgSender())
+            revert NotCertificateIssuer(certificateId, _msgSender());
         if (cert.revoked) revert AlreadyRevoked(certificateId);
 
         cert.revoked = true;
@@ -243,7 +329,9 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
      * @notice Fetches certificate identifiers issued by a specific institution.
      * @param institution Institution address.
      */
-    function getCertificatesByInstitution(address institution) external view returns (uint256[] memory) {
+    function getCertificatesByInstitution(
+        address institution
+    ) external view returns (uint256[] memory) {
         if (institution == address(0)) revert ZeroAddress();
         uint256[] storage stored = _institutionCertificates[institution];
         uint256 length = stored.length;
@@ -261,7 +349,9 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
      * @notice Fetches certificate identifiers held by a recipient wallet.
      * @param recipient Recipient address.
      */
-    function getCertificatesByRecipient(address recipient) external view returns (uint256[] memory) {
+    function getCertificatesByRecipient(
+        address recipient
+    ) external view returns (uint256[] memory) {
         if (recipient == address(0)) revert ZeroAddress();
         uint256[] storage stored = _recipientCertificates[recipient];
         uint256 length = stored.length;
@@ -279,7 +369,9 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
      * @notice Authorizes an institution to issue certificates.
      * @param institution Institution address to authorize.
      */
-    function authorizeInstitution(address institution) external onlyRole(ADMIN_ROLE) {
+    function authorizeInstitution(
+        address institution
+    ) external onlyRole(ADMIN_ROLE) {
         _authorizeInstitution(institution);
     }
 
@@ -287,7 +379,9 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
      * @notice Grants issuer permissions from the registry contract.
      * @dev Called by InstitutionRegistry when an institution is verified.
      */
-    function authorizeInstitutionFromRegistry(address institution) external onlyRole(REGISTRY_ROLE) {
+    function authorizeInstitutionFromRegistry(
+        address institution
+    ) external onlyRole(REGISTRY_ROLE) {
         _authorizeInstitution(institution);
     }
 
@@ -295,7 +389,9 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
      * @notice Removes issuer permissions from an institution.
      * @param institution Institution address to deauthorize.
      */
-    function deauthorizeInstitution(address institution) external onlyRole(ADMIN_ROLE) {
+    function deauthorizeInstitution(
+        address institution
+    ) external onlyRole(ADMIN_ROLE) {
         if (institution == address(0)) revert ZeroAddress();
         authorizedInstitutions[institution] = false;
         _revokeRole(ISSUER_ROLE, institution);
@@ -316,12 +412,9 @@ contract CertificateRegistry is ERC1155, AccessControl, Pausable, ReentrancyGuar
         _unpause();
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC1155, AccessControl)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC1155, AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 
