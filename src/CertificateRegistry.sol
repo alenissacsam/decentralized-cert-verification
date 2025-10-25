@@ -6,8 +6,8 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import {InstitutionRegistry} from "./InstitutionRegistry.sol";
-import {TemplateManager} from "./TemplateManager.sol";
+import {IInstitutionRegistry} from "./interfaces/IInstitutionRegistry.sol";
+import {ITemplateManager} from "./interfaces/ITemplateManager.sol";
 
 /**
  * @title CertificateRegistry
@@ -42,8 +42,8 @@ contract CertificateRegistry is
     mapping(address => bool) public authorizedInstitutions;
     mapping(uint256 => bool) public revokedCertificates;
 
-    InstitutionRegistry public immutable institutionRegistry;
-    TemplateManager public templateManager;
+    IInstitutionRegistry public immutable institutionRegistry;
+    ITemplateManager public templateManager;
 
     event CertificateIssued(
         uint256 indexed certificateId,
@@ -83,7 +83,7 @@ contract CertificateRegistry is
         if (institutionRegistry_ == address(0) || admin == address(0))
             revert ZeroAddress();
 
-        institutionRegistry = InstitutionRegistry(institutionRegistry_);
+        institutionRegistry = IInstitutionRegistry(institutionRegistry_);
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(ADMIN_ROLE, admin);
@@ -100,7 +100,7 @@ contract CertificateRegistry is
         address templateManager_
     ) external onlyRole(ADMIN_ROLE) {
         if (templateManager_ == address(0)) revert ZeroAddress();
-        templateManager = TemplateManager(templateManager_);
+        templateManager = ITemplateManager(templateManager_);
         emit TemplateManagerSet(templateManager_);
     }
 

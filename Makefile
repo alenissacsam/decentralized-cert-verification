@@ -13,7 +13,7 @@ help:
 	@echo "  make coverage          - Run tests with coverage report"
 	@echo "  make test-gas          - Run tests with gas report"
 	@echo "  make deploy-sepolia    - Deploy to Sepolia testnet"
-	@echo "  make verify-sepolia    - Verify contracts on Sepolia Etherscan"
+	@echo "  make verify-sepolia    - Verify contracts on Sepolia Blockscout"
 	@echo "  make extract-abi       - Extract ABIs for frontend"
 	@echo "  make clean             - Clean build artifacts"
 	@echo "  make anvil             - Start local Anvil node"
@@ -71,7 +71,8 @@ deploy-sepolia:
 		--private-key $(DEPLOYER_PRIVATE_KEY) \
 		--broadcast \
 		--verify \
-		--etherscan-api-key $(ETHERSCAN_API_KEY) \
+		--verifier blockscout \
+		--verifier-url $(BLOCKSCOUT_API_KEY) \
 		-vvvv
 
 # Deploy to local Anvil
@@ -82,24 +83,24 @@ deploy-local:
 		--private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
 		--broadcast
 
-# Verify contracts on Sepolia Etherscan
+# Verify contracts on Sepolia Blockscout
 .PHONY: verify-sepolia
 verify-sepolia:
 	@echo "Verifying CertificateRegistry..."
 	forge verify-contract $(CERTIFICATE_REGISTRY_ADDRESS) \
 		src/CertificateRegistry.sol:CertificateRegistry \
-		--chain sepolia \
-		--etherscan-api-key $(ETHERSCAN_API_KEY)
+		--verifier blockscout \
+		--verifier-url $(BLOCKSCOUT_API_KEY)
 	@echo "Verifying InstitutionRegistry..."
 	forge verify-contract $(INSTITUTION_REGISTRY_ADDRESS) \
 		src/InstitutionRegistry.sol:InstitutionRegistry \
-		--chain sepolia \
-		--etherscan-api-key $(ETHERSCAN_API_KEY)
+		--verifier blockscout \
+		--verifier-url $(BLOCKSCOUT_API_KEY)
 	@echo "Verifying TemplateManager..."
 	forge verify-contract $(TEMPLATE_MANAGER_ADDRESS) \
 		src/TemplateManager.sol:TemplateManager \
-		--chain sepolia \
-		--etherscan-api-key $(ETHERSCAN_API_KEY)
+		--verifier blockscout \
+		--verifier-url $(BLOCKSCOUT_API_KEY)
 
 # Extract ABIs for frontend
 .PHONY: extract-abi

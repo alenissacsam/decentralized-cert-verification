@@ -5,6 +5,7 @@ Smart contract suite for issuing, managing, and verifying blockchain-backed cert
 ---
 
 ## ✨ Overview
+
 - **Language & Tooling:** Solidity ^0.8.20 · Foundry · forge-std · OpenZeppelin Contracts v5
 - **Token Standard:** ERC-1155 (1 unique token ID per certificate)
 - **Core Roles:** `ADMIN`, `ISSUER`, `PAUSER`, `REGISTRY`
@@ -13,11 +14,13 @@ Smart contract suite for issuing, managing, and verifying blockchain-backed cert
 ---
 
 ## 🧱 Architecture
+
 ```
 InstitutionRegistry ──────┐
 								  ├─▶ CertificateRegistry (ERC-1155)
 TemplateManager ──────────┘
 ```
+
 - **InstitutionRegistry.sol** — Registers institutions, manages verification, tracks issuance counts.
 - **TemplateManager.sol** — Stores certificate templates, controls visibility, increments usage metrics.
 - **CertificateRegistry.sol** — Issues, verifies, and revokes certificates while linking institutions + templates.
@@ -25,6 +28,7 @@ TemplateManager ──────────┘
 ---
 
 ## 🚀 Features
+
 - Automated issuer authorization triggered by institution verification.
 - Batch certificate issuance and template linkage in a single transaction.
 - Reentrancy guard plus pause switch for emergency halts.
@@ -33,6 +37,7 @@ TemplateManager ──────────┘
 ---
 
 ## 📁 Project Structure
+
 ```
 ├── src/
 │   ├── CertificateRegistry.sol
@@ -54,13 +59,14 @@ TemplateManager ──────────┘
 ---
 
 ## ⚡ Quick Start
+
 ```bash
 # Install dependencies
 make install
 
 # Prepare environment variables
 cp .env.example .env
-# (edit .env with RPC URLs, private keys, Etherscan API key)
+# (edit .env with RPC URLs, private keys, optional Blockscout API key)
 
 # Compile & test
 make build
@@ -68,6 +74,7 @@ make test
 ```
 
 ### Requirements
+
 - [Foundry toolchain](https://book.getfoundry.sh/getting-started/installation)
 - RPC provider for Sepolia/Mainnet (Alchemy, Infura, etc.)
 - `jq` CLI for ABI extraction (`sudo apt install jq` on Debian/Ubuntu)
@@ -75,10 +82,12 @@ make test
 ---
 
 ## 🔧 Environment Variables
+
 Populate `.env` before broadcasting:
+
 - `SEPOLIA_RPC_URL` / `MAINNET_RPC_URL`
 - `DEPLOYER_PRIVATE_KEY` / `ADMIN_PRIVATE_KEY`
-- `ETHERSCAN_API_KEY`
+- Optional: `BLOCKSCOUT_API_KEY`
 - Contract address placeholders populate after deployment
 
 Details for each variable live in [.env.example](.env.example).
@@ -86,18 +95,20 @@ Details for each variable live in [.env.example](.env.example).
 ---
 
 ## 🛠️ Development Workflow
-| Command               | Description                                                   |
-|-----------------------|---------------------------------------------------------------|
-| `make build`          | Compile all smart contracts.                                  |
-| `make test`           | Run unit + integration tests (verbose).                       |
-| `make test-gas`       | Print gas usage for each test.                                |
-| `make coverage`       | Generate lcov + summary coverage reports.                     |
-| `make snapshot`       | Capture gas snapshots for regressions.                        |
-| `make format`         | Apply `forge fmt` formatting.                                 |
+
+| Command         | Description                               |
+| --------------- | ----------------------------------------- |
+| `make build`    | Compile all smart contracts.              |
+| `make test`     | Run unit + integration tests (verbose).   |
+| `make test-gas` | Print gas usage for each test.            |
+| `make coverage` | Generate lcov + summary coverage reports. |
+| `make snapshot` | Capture gas snapshots for regressions.    |
+| `make format`   | Apply `forge fmt` formatting.             |
 
 ---
 
 ## 🧪 Testing Strategy
+
 - `InstitutionRegistry.t.sol` — Institution lifecycle, verification, issuance counters.
 - `TemplateManager.t.sol` — Template creation, listings, usage increments.
 - `CertificateRegistry.t.sol` — Single/batch issuance, template linkage, revocation, pause logic.
@@ -108,19 +119,20 @@ The suite targets ≥90% coverage as defined in the PRD; extend with fuzzing or 
 ---
 
 ## 🚢 Deployment Guide
+
 1. Fund the deployer wallet with Sepolia ETH.
 2. Local dry-run:
-	```bash
-	make deploy-local
-	```
+   ```bash
+   make deploy-local
+   ```
 3. Deploy to Sepolia:
-	```bash
-	make deploy-sepolia
-	```
-4. Verify contracts on Etherscan:
-	```bash
-	make verify-sepolia
-	```
+   ```bash
+   make deploy-sepolia
+   ```
+4. Verify contracts on Blockscout:
+   ```bash
+   make verify-sepolia
+   ```
 5. Update `.env` with emitted contract addresses for downstream tooling.
 
 `script/Deploy.s.sol` deploys contracts in order, grants REGISTRY roles, and wires in the template manager.
@@ -128,14 +140,17 @@ The suite targets ≥90% coverage as defined in the PRD; extend with fuzzing or 
 ---
 
 ## 📤 ABI Export
+
 ```bash
 make extract-abi
 ```
+
 Emits clean ABIs into `abi/` (ignored by Git) for frontend or SDK consumption.
 
 ---
 
 ## 🔒 Security Checklist
+
 - ✅ `AccessControl` protects privileged operations.
 - ✅ `ReentrancyGuard` + `Pausable` shield state transitions.
 - ✅ Input validation rejects zero addresses / empty hashes.
@@ -145,6 +160,7 @@ Emits clean ABIs into `abi/` (ignored by Git) for frontend or SDK consumption.
 ---
 
 ## 📚 References
+
 - [Product Requirements Document](PRD-SmartContracts.md)
 - [Foundry Book](https://book.getfoundry.sh/)
 - [OpenZeppelin Contracts v5 Docs](https://docs.openzeppelin.com/contracts/5.x/)

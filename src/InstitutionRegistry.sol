@@ -2,10 +2,8 @@
 pragma solidity ^0.8.20;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ICertificateRegistry} from "./interfaces/ICertificateRegistry.sol";
 
-interface ICertificateRegistry {
-    function authorizeInstitutionFromRegistry(address institution) external;
-}
 
 /**
  * @title InstitutionRegistry
