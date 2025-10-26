@@ -1,0 +1,53 @@
+{
+  "template_name": "Blockchain Hackathon Winner",
+  "description": "Awarded for outstanding achievement in Blockchain Hackathon 2025.",
+  "category": "Hackathon",
+  "organization": {
+    "name": "Tech University",
+    "logo_ipfs": "ipfs://QmExampleLogoHash"
+  },
+  "fields": [
+    {
+      "key": "Alen Issac Sam",
+      "label": "Recipient Name",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "0x7cA2331B559Ab659AC7a4A7573fADD3DFB91f19c",
+      "label": "Recipient Wallet Address",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "First Prize For Hackathon",
+      "label": "Certificate Title",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "26-10-2025",
+      "label": "Issue Date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "1",
+      "label": "Certificate ID",
+      "type": "number",
+      "required": true
+    },
+    {
+      "key": "Hackathon",
+      "label": "Certificate Type",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "description",
+      "label": "Certificate Description",
+      "type": "string",
+      "required": false
+    }
+  ],
+}

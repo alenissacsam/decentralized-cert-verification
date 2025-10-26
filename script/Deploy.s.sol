@@ -6,6 +6,7 @@ import {Script, console2} from "forge-std/Script.sol";
 import {CertificateRegistry} from "../src/CertificateRegistry.sol";
 import {InstitutionRegistry} from "../src/InstitutionRegistry.sol";
 import {TemplateManager} from "../src/TemplateManager.sol";
+import {NameRegistry} from "../src/NameRegistry.sol";
 
 contract DeployScript is Script {
     function run() external {
@@ -25,22 +26,9 @@ contract DeployScript is Script {
             admin,
             "ipfs://base-uri/"
         );
+        NameRegistry nameRegistry = new NameRegistry();
 
         institutionRegistry.setCertificateRegistry(
-            address(certificateRegistry)
-        );
-        institutionRegistry.grantRole(
-            institutionRegistry.REGISTRY_ROLE(),
-            address(certificateRegistry)
-        );
-
-        certificateRegistry.grantRole(
-            certificateRegistry.REGISTRY_ROLE(),
-            address(institutionRegistry)
-        );
-
-        templateManager.grantRole(
-            templateManager.REGISTRY_ROLE(),
             address(certificateRegistry)
         );
         certificateRegistry.setTemplateManager(address(templateManager));
@@ -51,6 +39,7 @@ contract DeployScript is Script {
         console2.log("InstitutionRegistry:", address(institutionRegistry));
         console2.log("TemplateManager:", address(templateManager));
         console2.log("CertificateRegistry:", address(certificateRegistry));
+        console2.log("NameRegistry:", address(nameRegistry));
         console2.log("Admin Address:", admin);
     }
 }

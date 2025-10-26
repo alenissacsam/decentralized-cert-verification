@@ -19,49 +19,20 @@ contract CertificateRegistryTest is Test {
     address internal unverified = address(5);
 
     function setUp() public {
-        vm.prank(admin);
         institutionRegistry = new InstitutionRegistry(admin);
-
-        vm.prank(admin);
         templateManager = new TemplateManager(admin);
-
-        vm.prank(admin);
         registry = new CertificateRegistry(
             address(institutionRegistry),
             admin,
             "ipfs://base/"
         );
 
-        vm.startPrank(admin);
-        institutionRegistry.setCertificateRegistry(address(registry));
-        institutionRegistry.grantRole(
-            institutionRegistry.REGISTRY_ROLE(),
-            address(registry)
-        );
-
-        registry.grantRole(
-            registry.REGISTRY_ROLE(),
-            address(institutionRegistry)
-        );
-
-        templateManager.grantRole(
-            templateManager.REGISTRY_ROLE(),
-            address(registry)
-        );
-        templateManager.grantIssuerRole(issuer);
         registry.setTemplateManager(address(templateManager));
-        vm.stopPrank();
 
         vm.prank(issuer);
         institutionRegistry.registerInstitution("Issuer", "logo", "contact");
-        vm.prank(unverified);
-        institutionRegistry.registerInstitution("Other", "logo2", "contact2");
 
-        vm.prank(admin);
-        institutionRegistry.verifyInstitution(issuer);
-
-        assertTrue(registry.authorizedInstitutions(issuer));
-        assertTrue(registry.hasRole(registry.ISSUER_ROLE(), issuer));
+        assertTrue(institutionRegistry.verifiedInstitutions(issuer));
     }
 
     function _createTemplate(
@@ -76,7 +47,7 @@ contract CertificateRegistryTest is Test {
         vm.prank(issuer);
         uint256 certificateId = registry.issueCertificate(
             recipient,
-            "Qm123",
+            "ipfs://Qm123",
             "Hackathon"
         );
 
@@ -92,12 +63,23 @@ contract CertificateRegistryTest is Test {
             bool revoked
         ) = registry.certificates(certificateId);
 
-        assertEq(storedHash, "Qm123");
+        assertEq(storedHash, "ipfs://Qm123");
         assertEq(storedIssuer, issuer);
         assertEq(storedRecipient, recipient);
         assertEq(storedType, "Hackathon");
         assertGt(issuedAt, 0);
         assertFalse(revoked);
+    }
+
+    function test_UriReturnsStoredHash() public {
+        vm.prank(issuer);
+        uint256 certificateId = registry.issueCertificate(
+            recipient,
+            "ipfs://uriHash",
+            "Hackathon"
+        );
+
+        assertEq(registry.uri(certificateId), "ipfs://uriHash");
     }
 
     function test_IssueCertificateWithTemplate_Success() public {
@@ -106,7 +88,7 @@ contract CertificateRegistryTest is Test {
         vm.prank(issuer);
         uint256 certificateId = registry.issueCertificateWithTemplate(
             recipient,
-            "QmTemplate",
+            "ipfs://QmTemplate",
             "Course",
             templateId
         );
@@ -125,8 +107,8 @@ contract CertificateRegistryTest is Test {
         recipients[1] = other;
 
         string[] memory hashes = new string[](2);
-        hashes[0] = "Qm1";
-        hashes[1] = "Qm2";
+        hashes[0] = "ipfs://Qm1";
+        hashes[1] = "ipfs://Qm2";
 
         vm.prank(issuer);
         uint256[] memory ids = registry.batchIssueCertificates(
@@ -149,8 +131,8 @@ contract CertificateRegistryTest is Test {
         recipients[1] = other;
 
         string[] memory hashes = new string[](2);
-        hashes[0] = "Qa";
-        hashes[1] = "Qb";
+        hashes[0] = "ipfs://Qa";
+        hashes[1] = "ipfs://Qb";
 
         uint256[] memory templates = new uint256[](2);
         templates[0] = templateA;
@@ -181,7 +163,7 @@ contract CertificateRegistryTest is Test {
         vm.prank(issuer);
         uint256 certificateId = registry.issueCertificate(
             recipient,
-            "Qm123",
+            "ipfs://Qm123",
             "Hackathon"
         );
 
@@ -197,7 +179,7 @@ contract CertificateRegistryTest is Test {
         vm.prank(issuer);
         uint256 certificateId = registry.issueCertificate(
             recipient,
-            "Qm123",
+            "ipfs://Qm123",
             "Hackathon"
         );
 
@@ -207,8 +189,6 @@ contract CertificateRegistryTest is Test {
             "logo3",
             "contact3"
         );
-        vm.prank(admin);
-        institutionRegistry.verifyInstitution(other);
 
         vm.prank(other);
         vm.expectRevert(
@@ -222,27 +202,21 @@ contract CertificateRegistryTest is Test {
     }
 
     function test_IssueCertificate_RevertWhenNotAuthorized() public {
-        vm.prank(unverified);
-        vm.expectRevert();
-        registry.issueCertificate(recipient, "Qm123", "Hackathon");
-    }
-
-    function test_AuthorizeInstitution_RevertWhenNotVerified() public {
-        vm.prank(admin);
         vm.expectRevert(
             abi.encodeWithSelector(
                 CertificateRegistry.InstitutionNotVerified.selector,
                 unverified
             )
         );
-        registry.authorizeInstitution(unverified);
+        vm.prank(unverified);
+        registry.issueCertificate(recipient, "ipfs://Qm123", "Hackathon");
     }
 
     function test_GetCertificatesByInstitution_ReturnsIds() public {
         vm.prank(issuer);
-        registry.issueCertificate(recipient, "Qm1", "Hackathon");
+        registry.issueCertificate(recipient, "ipfs://Qm1", "Hackathon");
         vm.prank(issuer);
-        registry.issueCertificate(other, "Qm2", "Hackathon");
+        registry.issueCertificate(other, "ipfs://Qm2", "Hackathon");
 
         uint256[] memory ids = registry.getCertificatesByInstitution(issuer);
         assertEq(ids.length, 2);
@@ -252,9 +226,9 @@ contract CertificateRegistryTest is Test {
 
     function test_GetCertificatesByRecipient_ReturnsIds() public {
         vm.prank(issuer);
-        registry.issueCertificate(recipient, "Qm1", "Hackathon");
+        registry.issueCertificate(recipient, "ipfs://Qm1", "Hackathon");
         vm.prank(issuer);
-        registry.issueCertificate(recipient, "Qm2", "Hackathon");
+        registry.issueCertificate(recipient, "ipfs://Qm2", "Hackathon");
 
         uint256[] memory ids = registry.getCertificatesByRecipient(recipient);
         assertEq(ids.length, 2);
@@ -262,12 +236,20 @@ contract CertificateRegistryTest is Test {
         assertEq(ids[1], 2);
     }
 
-    function test_PauseBlocksIssuance() public {
-        vm.prank(admin);
-        registry.pause();
-
+    function test_TransfersDisabled() public {
         vm.prank(issuer);
-        vm.expectRevert(bytes4(keccak256("EnforcedPause()")));
-        registry.issueCertificate(recipient, "Qm123", "Hackathon");
+        uint256 certificateId = registry.issueCertificate(
+            recipient,
+            "ipfs://Qm123",
+            "Hackathon"
+        );
+
+        vm.prank(recipient);
+        vm.expectRevert(CertificateRegistry.TransfersDisabled.selector);
+        registry.safeTransferFrom(recipient, other, certificateId, 1, "");
+
+        vm.prank(recipient);
+        vm.expectRevert(CertificateRegistry.TransfersDisabled.selector);
+        registry.setApprovalForAll(other, true);
     }
 }

@@ -1,17 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {ICertificateRegistry} from "./interfaces/ICertificateRegistry.sol";
-
-
 /**
  * @title InstitutionRegistry
  * @notice Manages institution onboarding and verification for the certificate platform.
  */
-contract InstitutionRegistry is AccessControl {
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-    bytes32 public constant REGISTRY_ROLE = keccak256("REGISTRY_ROLE");
+contract InstitutionRegistry {
+    address public immutable deployer;
 
     struct Institution {
         string name;
@@ -25,7 +20,7 @@ contract InstitutionRegistry is AccessControl {
     mapping(address => Institution) private _institutions;
     mapping(address => bool) public verifiedInstitutions;
 
-    ICertificateRegistry public certificateRegistry;
+    address public certificateRegistry;
     uint256 public institutionCount;
 
     event InstitutionRegistered(address indexed institution, string name);
@@ -41,9 +36,7 @@ contract InstitutionRegistry is AccessControl {
 
     constructor(address admin) {
         if (admin == address(0)) revert ZeroAddress();
-
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(ADMIN_ROLE, admin);
+        deployer = admin;
     }
 
     /**
@@ -57,7 +50,7 @@ contract InstitutionRegistry is AccessControl {
         string calldata logoIpfsHash,
         string calldata contactInfo
     ) external {
-        address institution = _msgSender();
+        address institution = msg.sender;
         if (_institutions[institution].registeredAt != 0) {
             revert InstitutionAlreadyRegistered(institution);
         }
@@ -75,23 +68,24 @@ contract InstitutionRegistry is AccessControl {
             contactInfo: contactInfo,
             totalCertificatesIssued: 0,
             registeredAt: block.timestamp,
-            verified: false
+            verified: true
         });
+
+        verifiedInstitutions[institution] = true;
 
         unchecked {
             ++institutionCount;
         }
 
         emit InstitutionRegistered(institution, name);
+        emit InstitutionVerified(institution);
     }
 
     /**
      * @notice Verifies an institution after due diligence.
      * @param institution Address of the institution to verify.
      */
-    function verifyInstitution(
-        address institution
-    ) external onlyRole(ADMIN_ROLE) {
+    function verifyInstitution(address institution) external {
         if (institution == address(0)) revert ZeroAddress();
         Institution storage info = _institutions[institution];
         if (info.registeredAt == 0)
@@ -100,10 +94,6 @@ contract InstitutionRegistry is AccessControl {
 
         info.verified = true;
         verifiedInstitutions[institution] = true;
-
-        if (address(certificateRegistry) != address(0)) {
-            certificateRegistry.authorizeInstitutionFromRegistry(institution);
-        }
 
         emit InstitutionVerified(institution);
     }
@@ -121,24 +111,20 @@ contract InstitutionRegistry is AccessControl {
             revert EmptyField();
         }
 
-        Institution storage info = _institutions[_msgSender()];
-        if (info.registeredAt == 0)
-            revert InstitutionNotRegistered(_msgSender());
+        Institution storage info = _institutions[msg.sender];
+        if (info.registeredAt == 0) revert InstitutionNotRegistered(msg.sender);
 
         info.logoIpfsHash = logoIpfsHash;
         info.contactInfo = contactInfo;
 
-        emit InstitutionUpdated(_msgSender());
+        emit InstitutionUpdated(msg.sender);
     }
 
     /**
-     * @notice Allows the certificate registry to increment issuance counters.
-     * @dev Only callable by addresses with REGISTRY_ROLE.
+     * @notice Increments the issuance counter for an institution.
      * @param institution Target institution address.
      */
-    function incrementCertificateCount(
-        address institution
-    ) external onlyRole(REGISTRY_ROLE) {
+    function incrementCertificateCount(address institution) external {
         if (institution == address(0)) revert ZeroAddress();
         Institution storage info = _institutions[institution];
         if (info.registeredAt == 0)
@@ -167,11 +153,9 @@ contract InstitutionRegistry is AccessControl {
      * @notice Sets the certificate registry that can manage institution state.
      * @param registry Address of the certificate registry contract.
      */
-    function setCertificateRegistry(
-        address registry
-    ) external onlyRole(ADMIN_ROLE) {
+    function setCertificateRegistry(address registry) external {
         if (registry == address(0)) revert ZeroAddress();
-        certificateRegistry = ICertificateRegistry(registry);
+        certificateRegistry = registry;
         emit CertificateRegistrySet(registry);
     }
 

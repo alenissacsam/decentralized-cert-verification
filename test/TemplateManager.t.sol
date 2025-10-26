@@ -12,11 +12,7 @@ contract TemplateManagerTest is Test {
     address internal institution = address(2);
 
     function setUp() public {
-        vm.prank(admin);
         manager = new TemplateManager(admin);
-
-        vm.prank(admin);
-        manager.grantIssuerRole(institution);
     }
 
     function test_CreateTemplate_Success() public {
@@ -77,10 +73,6 @@ contract TemplateManagerTest is Test {
             true,
             "Hackathon"
         );
-
-        bytes32 registryRole = manager.REGISTRY_ROLE();
-        vm.prank(admin);
-        manager.grantRole(registryRole, address(this));
 
         manager.incrementUsageCount(templateId);
 

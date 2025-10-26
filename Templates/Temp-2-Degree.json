@@ -1,0 +1,66 @@
+{
+  "template_name": "Bachelor Degree Certificate",
+  "description": "Conferred upon completion of accredited undergraduate study.",
+  "category": "Degree",
+  "organization": {
+    "name": "International College of Technology",
+    "logo_ipfs": "ipfs://QmCollegeLogoHash"
+  },
+  "fields": [
+    {
+      "key": "recipient_name",
+      "label": "Graduate Name",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "recipient_wallet",
+      "label": "Graduate Wallet Address",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "degree_title",
+      "label": "Degree Title",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "major",
+      "label": "Major/Branch",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "graduation_year",
+      "label": "Year of Graduation",
+      "type": "number",
+      "required": true
+    },
+    {
+      "key": "cgpa",
+      "label": "CGPA",
+      "type": "string",
+      "required": false
+    },
+    {
+      "key": "roll_number",
+      "label": "Roll Number/ID",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "issued_date",
+      "label": "Date of Issue",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "certificate_id",
+      "label": "Certificate ID",
+      "type": "number",
+      "required": true
+    }
+  ],
+  
+}

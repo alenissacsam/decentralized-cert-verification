@@ -1,0 +1,53 @@
+{
+  "template_name": "Blockchain Hackathon Winner",
+  "description": "Awarded for outstanding achievement in Blockchain Hackathon 2025.",
+  "category": "Hackathon",
+  "organization": {
+    "name": "Tech University",
+    "logo_ipfs": "ipfs://QmExampleLogoHash"
+  },
+  "fields": [
+    {
+      "key": "recipient_name",
+      "label": "Recipient Name",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "recipient_wallet",
+      "label": "Recipient Wallet Address",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "certificate_title",
+      "label": "Certificate Title",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "issue_date",
+      "label": "Issue Date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "key": "certificate_id",
+      "label": "Certificate ID",
+      "type": "number",
+      "required": true
+    },
+    {
+      "key": "certificate_type",
+      "label": "Certificate Type",
+      "type": "string",
+      "required": true
+    },
+    {
+      "key": "description",
+      "label": "Certificate Description",
+      "type": "string",
+      "required": false
+    }
+  ],
+}

@@ -2,8 +2,6 @@
 pragma solidity ^0.8.20;
 
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {IInstitutionRegistry} from "./interfaces/IInstitutionRegistry.sol";
@@ -13,16 +11,8 @@ import {ITemplateManager} from "./interfaces/ITemplateManager.sol";
  * @title CertificateRegistry
  * @notice ERC-1155 based registry for issuing and managing certificates.
  */
-contract CertificateRegistry is
-    ERC1155,
-    AccessControl,
-    Pausable,
-    ReentrancyGuard
-{
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-    bytes32 public constant ISSUER_ROLE = keccak256("ISSUER_ROLE");
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    bytes32 public constant REGISTRY_ROLE = keccak256("REGISTRY_ROLE");
+contract CertificateRegistry is ERC1155, ReentrancyGuard {
+    address public immutable deployer;
 
     struct Certificate {
         string ipfsHash;
@@ -39,7 +29,6 @@ contract CertificateRegistry is
     mapping(address => uint256[]) private _institutionCertificates;
     mapping(address => uint256[]) private _recipientCertificates;
     mapping(uint256 => uint256) public certificateTemplates;
-    mapping(address => bool) public authorizedInstitutions;
     mapping(uint256 => bool) public revokedCertificates;
 
     IInstitutionRegistry public immutable institutionRegistry;
@@ -60,8 +49,6 @@ contract CertificateRegistry is
         uint256 indexed certificateId,
         address indexed issuer
     );
-    event InstitutionAuthorized(address indexed institution);
-    event InstitutionDeauthorized(address indexed institution);
     event TemplateManagerSet(address indexed templateManager);
     event CertificateTemplateLinked(
         uint256 indexed certificateId,
@@ -74,6 +61,7 @@ contract CertificateRegistry is
     error NotCertificateIssuer(uint256 certificateId, address caller);
     error AlreadyRevoked(uint256 certificateId);
     error InstitutionNotVerified(address institution);
+    error TransfersDisabled();
 
     constructor(
         address institutionRegistry_,
@@ -84,21 +72,14 @@ contract CertificateRegistry is
             revert ZeroAddress();
 
         institutionRegistry = IInstitutionRegistry(institutionRegistry_);
-
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(ADMIN_ROLE, admin);
-        _grantRole(PAUSER_ROLE, admin);
-        _grantRole(ISSUER_ROLE, admin);
-        _grantRole(REGISTRY_ROLE, admin);
+        deployer = admin;
     }
 
     /**
      * @notice Sets the template manager contract used for tracking template usage.
      * @param templateManager_ Address of the template manager contract.
      */
-    function setTemplateManager(
-        address templateManager_
-    ) external onlyRole(ADMIN_ROLE) {
+    function setTemplateManager(address templateManager_) external {
         if (templateManager_ == address(0)) revert ZeroAddress();
         templateManager = ITemplateManager(templateManager_);
         emit TemplateManagerSet(templateManager_);
@@ -115,13 +96,7 @@ contract CertificateRegistry is
         address recipient,
         string calldata ipfsHash,
         string calldata certificateType
-    )
-        external
-        nonReentrant
-        whenNotPaused
-        onlyRole(ISSUER_ROLE)
-        returns (uint256 certificateId)
-    {
+    ) external nonReentrant returns (uint256 certificateId) {
         if (recipient == address(0)) revert ZeroAddress();
         if (bytes(ipfsHash).length == 0 || bytes(certificateType).length == 0)
             revert EmptyField();
@@ -153,13 +128,7 @@ contract CertificateRegistry is
         string calldata ipfsHash,
         string calldata certificateType,
         uint256 templateId
-    )
-        external
-        nonReentrant
-        whenNotPaused
-        onlyRole(ISSUER_ROLE)
-        returns (uint256 certificateId)
-    {
+    ) external nonReentrant returns (uint256 certificateId) {
         if (recipient == address(0)) revert ZeroAddress();
         if (bytes(ipfsHash).length == 0 || bytes(certificateType).length == 0)
             revert EmptyField();
@@ -189,13 +158,7 @@ contract CertificateRegistry is
         address[] calldata recipients,
         string[] calldata ipfsHashes,
         string calldata certificateType
-    )
-        external
-        nonReentrant
-        whenNotPaused
-        onlyRole(ISSUER_ROLE)
-        returns (uint256[] memory certificateIds)
-    {
+    ) external nonReentrant returns (uint256[] memory certificateIds) {
         uint256 length = recipients.length;
         if (length == 0 || length != ipfsHashes.length) revert EmptyField();
         if (bytes(certificateType).length == 0) revert EmptyField();
@@ -208,18 +171,20 @@ contract CertificateRegistry is
 
         for (uint256 i = 0; i < length; ) {
             address recipient = recipients[i];
-            if (recipient == address(0) || bytes(ipfsHashes[i]).length == 0)
-                revert EmptyField();
+            if (recipient == address(0)) revert ZeroAddress();
+
+            string memory hash = ipfsHashes[i];
+            if (bytes(hash).length == 0) revert EmptyField();
 
             uint256 certId = _issueCertificateInternal(
                 issuer,
                 recipient,
-                ipfsHashes[i],
+                hash,
                 certificateType
             );
             certificateIds[i] = certId;
 
-            emit CertificateIssued(certId, issuer, recipient, ipfsHashes[i]);
+            emit CertificateIssued(certId, issuer, recipient, hash);
 
             unchecked {
                 ++i;
@@ -229,61 +194,44 @@ contract CertificateRegistry is
         emit BatchCertificateIssued(certificateIds, issuer, recipients);
     }
 
-    /**
-     * @notice Issues multiple certificates in a batch with associated templates.
-     * @param recipients Array of recipients.
-     * @param ipfsHashes Array of IPFS hashes corresponding to certificates.
-     * @param certificateType Shared classification for certificates.
-     * @param templateIds Template identifiers aligned with the certificates.
-     * @return certificateIds Newly minted certificate identifiers.
-     */
     function batchIssueCertificatesWithTemplates(
         address[] calldata recipients,
         string[] calldata ipfsHashes,
         string calldata certificateType,
         uint256[] calldata templateIds
-    )
-        external
-        nonReentrant
-        whenNotPaused
-        onlyRole(ISSUER_ROLE)
-        returns (uint256[] memory certificateIds)
-    {
+    ) external nonReentrant returns (uint256[] memory certificateIds) {
+        uint256 length = recipients.length;
         if (
-            recipients.length == 0 ||
-            recipients.length != ipfsHashes.length ||
-            recipients.length != templateIds.length
+            length == 0 ||
+            length != ipfsHashes.length ||
+            length != templateIds.length
         ) {
             revert EmptyField();
         }
         if (bytes(certificateType).length == 0) revert EmptyField();
-        if (!institutionRegistry.verifiedInstitutions(_msgSender())) {
-            revert InstitutionNotVerified(_msgSender());
+        address issuer = _msgSender();
+        if (!institutionRegistry.verifiedInstitutions(issuer)) {
+            revert InstitutionNotVerified(issuer);
         }
 
-        certificateIds = new uint256[](recipients.length);
+        certificateIds = new uint256[](length);
 
-        for (uint256 i = 0; i < recipients.length; ) {
-            address currentRecipient = recipients[i];
-            if (currentRecipient == address(0)) revert ZeroAddress();
+        for (uint256 i = 0; i < length; ) {
+            address recipient = recipients[i];
+            if (recipient == address(0)) revert ZeroAddress();
 
-            string memory currentHash = ipfsHashes[i];
-            if (bytes(currentHash).length == 0) revert EmptyField();
+            string memory hash = ipfsHashes[i];
+            if (bytes(hash).length == 0) revert EmptyField();
 
             uint256 certId = _issueCertificateInternal(
-                _msgSender(),
-                currentRecipient,
-                currentHash,
+                issuer,
+                recipient,
+                hash,
                 certificateType
             );
             certificateIds[i] = certId;
 
-            emit CertificateIssued(
-                certId,
-                _msgSender(),
-                currentRecipient,
-                currentHash
-            );
+            emit CertificateIssued(certId, issuer, recipient, hash);
             _linkTemplate(certId, templateIds[i]);
 
             unchecked {
@@ -291,7 +239,7 @@ contract CertificateRegistry is
             }
         }
 
-        emit BatchCertificateIssued(certificateIds, _msgSender(), recipients);
+        emit BatchCertificateIssued(certificateIds, issuer, recipients);
     }
 
     /**
@@ -310,9 +258,7 @@ contract CertificateRegistry is
      * @notice Revokes an issued certificate without burning the token.
      * @param certificateId Target certificate identifier.
      */
-    function revokeCertificate(
-        uint256 certificateId
-    ) external whenNotPaused onlyRole(ISSUER_ROLE) {
+    function revokeCertificate(uint256 certificateId) external {
         Certificate storage cert = certificates[certificateId];
         if (cert.issuedAt == 0) revert CertificateNotFound(certificateId);
         if (cert.issuer != _msgSender())
@@ -365,57 +311,47 @@ contract CertificateRegistry is
         return certIds;
     }
 
-    /**
-     * @notice Authorizes an institution to issue certificates.
-     * @param institution Institution address to authorize.
-     */
-    function authorizeInstitution(
-        address institution
-    ) external onlyRole(ADMIN_ROLE) {
-        _authorizeInstitution(institution);
+    function uri(
+        uint256 certificateId
+    ) public view override returns (string memory) {
+        Certificate memory cert = certificates[certificateId];
+        if (cert.issuedAt == 0) revert CertificateNotFound(certificateId);
+
+        string memory stored = cert.ipfsHash;
+        if (_hasProtocolPrefix(stored)) {
+            return stored;
+        }
+
+        string memory base = super.uri(certificateId);
+        if (bytes(base).length == 0) {
+            return stored;
+        }
+
+        return string(abi.encodePacked(base, stored));
     }
 
-    /**
-     * @notice Grants issuer permissions from the registry contract.
-     * @dev Called by InstitutionRegistry when an institution is verified.
-     */
-    function authorizeInstitutionFromRegistry(
-        address institution
-    ) external onlyRole(REGISTRY_ROLE) {
-        _authorizeInstitution(institution);
+    function safeTransferFrom(
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes memory
+    ) public pure override {
+        revert TransfersDisabled();
     }
 
-    /**
-     * @notice Removes issuer permissions from an institution.
-     * @param institution Institution address to deauthorize.
-     */
-    function deauthorizeInstitution(
-        address institution
-    ) external onlyRole(ADMIN_ROLE) {
-        if (institution == address(0)) revert ZeroAddress();
-        authorizedInstitutions[institution] = false;
-        _revokeRole(ISSUER_ROLE, institution);
-        emit InstitutionDeauthorized(institution);
+    function safeBatchTransferFrom(
+        address,
+        address,
+        uint256[] memory,
+        uint256[] memory,
+        bytes memory
+    ) public pure override {
+        revert TransfersDisabled();
     }
 
-    /**
-     * @notice Pause issuing and revoking certificates.
-     */
-    function pause() external onlyRole(PAUSER_ROLE) {
-        _pause();
-    }
-
-    /**
-     * @notice Resume issuing and revoking certificates.
-     */
-    function unpause() external onlyRole(PAUSER_ROLE) {
-        _unpause();
-    }
-
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(ERC1155, AccessControl) returns (bool) {
-        return super.supportsInterface(interfaceId);
+    function setApprovalForAll(address, bool) public pure override {
+        revert TransfersDisabled();
     }
 
     function _issueCertificateInternal(
@@ -441,16 +377,17 @@ contract CertificateRegistry is
         institutionRegistry.incrementCertificateCount(issuer);
     }
 
-    function _authorizeInstitution(address institution) private {
-        if (institution == address(0)) revert ZeroAddress();
-        if (!institutionRegistry.verifiedInstitutions(institution)) {
-            revert InstitutionNotVerified(institution);
+    function _update(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory values
+    ) internal override {
+        if (from != address(0) && to != address(0)) {
+            revert TransfersDisabled();
         }
 
-        authorizedInstitutions[institution] = true;
-        _grantRole(ISSUER_ROLE, institution);
-
-        emit InstitutionAuthorized(institution);
+        super._update(from, to, ids, values);
     }
 
     function _linkTemplate(uint256 certificateId, uint256 templateId) private {
@@ -461,5 +398,40 @@ contract CertificateRegistry is
         certificateTemplates[certificateId] = templateId;
         templateManager.incrementUsageCount(templateId);
         emit CertificateTemplateLinked(certificateId, templateId);
+    }
+
+    function _hasProtocolPrefix(
+        string memory value
+    ) private pure returns (bool) {
+        bytes memory data = bytes(value);
+        if (data.length < 7) {
+            return false;
+        }
+
+        if (
+            data[0] == "i" &&
+            data[1] == "p" &&
+            data[2] == "f" &&
+            data[3] == "s" &&
+            data[4] == ":" &&
+            data[5] == "/" &&
+            data[6] == "/"
+        ) {
+            return true;
+        }
+
+        if (data.length < 8) {
+            return false;
+        }
+
+        return
+            data[0] == "h" &&
+            data[1] == "t" &&
+            data[2] == "t" &&
+            data[3] == "p" &&
+            data[4] == "s" &&
+            data[5] == ":" &&
+            data[6] == "/" &&
+            data[7] == "/";
     }
 }

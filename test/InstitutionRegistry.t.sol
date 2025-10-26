@@ -3,32 +3,16 @@ pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 
-import {InstitutionRegistry, ICertificateRegistry} from "../src/InstitutionRegistry.sol";
-
-contract CertificateRegistryStub is ICertificateRegistry {
-    address public lastInstitution;
-
-    function authorizeInstitutionFromRegistry(
-        address institution
-    ) external override {
-        lastInstitution = institution;
-    }
-}
+import {InstitutionRegistry} from "../src/InstitutionRegistry.sol";
 
 contract InstitutionRegistryTest is Test {
     InstitutionRegistry internal registry;
-    CertificateRegistryStub internal certificateRegistry;
 
     address internal admin = address(1);
     address internal institution = address(2);
 
     function setUp() public {
-        vm.prank(admin);
         registry = new InstitutionRegistry(admin);
-        certificateRegistry = new CertificateRegistryStub();
-
-        vm.prank(admin);
-        registry.setCertificateRegistry(address(certificateRegistry));
     }
 
     function test_RegisterInstitution_Success() public {
@@ -42,7 +26,8 @@ contract InstitutionRegistryTest is Test {
         assertEq(info.logoIpfsHash, "logo");
         assertEq(info.contactInfo, "contact");
         assertEq(info.totalCertificatesIssued, 0);
-        assertEq(info.verified, false);
+        assertTrue(info.verified);
+        assertTrue(registry.verifiedInstitutions(institution));
     }
 
     function test_RegisterInstitution_RevertWhenDuplicate() public {
@@ -59,21 +44,21 @@ contract InstitutionRegistryTest is Test {
         registry.registerInstitution("Test University", "logo", "contact");
     }
 
-    function test_VerifyInstitution_SetsFlagAndNotifiesCertificateRegistry()
-        public
-    {
+    function test_VerifyInstitution_RevertWhenAlreadyVerified() public {
         vm.prank(institution);
         registry.registerInstitution("Test University", "logo", "contact");
 
         vm.prank(admin);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InstitutionRegistry.InstitutionAlreadyVerified.selector,
+                institution
+            )
+        );
         registry.verifyInstitution(institution);
-
-        assertTrue(registry.verifiedInstitutions(institution));
-        assertEq(certificateRegistry.lastInstitution(), institution);
     }
 
     function test_VerifyInstitution_RevertWhenNotRegistered() public {
-        vm.prank(admin);
         vm.expectRevert(
             abi.encodeWithSelector(
                 InstitutionRegistry.InstitutionNotRegistered.selector,
@@ -97,13 +82,9 @@ contract InstitutionRegistryTest is Test {
         assertEq(info.contactInfo, "newContact");
     }
 
-    function test_IncrementCertificateCount_RequiresRole() public {
+    function test_IncrementCertificateCount_IncreasesCounter() public {
         vm.prank(institution);
         registry.registerInstitution("Test University", "logo", "contact");
-
-        vm.startPrank(admin);
-        registry.grantRole(registry.REGISTRY_ROLE(), address(this));
-        vm.stopPrank();
 
         registry.incrementCertificateCount(institution);
 

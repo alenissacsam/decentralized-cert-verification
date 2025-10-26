@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-
 /**
  * @title TemplateManager
  * @notice Manages certificate template metadata for institutions.
  */
-contract TemplateManager is AccessControl {
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-    bytes32 public constant ISSUER_ROLE = keccak256("ISSUER_ROLE");
-    bytes32 public constant REGISTRY_ROLE = keccak256("REGISTRY_ROLE");
+contract TemplateManager {
+    address public immutable deployer;
 
     struct Template {
         string ipfsHash;
@@ -36,10 +32,7 @@ contract TemplateManager is AccessControl {
 
     constructor(address admin) {
         if (admin == address(0)) revert ZeroAddress();
-
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(ADMIN_ROLE, admin);
-        _grantRole(ISSUER_ROLE, admin);
+        deployer = admin;
     }
 
     /**
@@ -53,7 +46,7 @@ contract TemplateManager is AccessControl {
         string calldata ipfsHash,
         bool isPublic,
         string calldata category
-    ) external onlyRole(ISSUER_ROLE) returns (uint256 templateId) {
+    ) external returns (uint256 templateId) {
         if (bytes(ipfsHash).length == 0 || bytes(category).length == 0)
             revert EmptyField();
 
@@ -61,17 +54,17 @@ contract TemplateManager is AccessControl {
 
         Template storage record = _templates[templateId];
         record.ipfsHash = ipfsHash;
-        record.creator = _msgSender();
+        record.creator = msg.sender;
         record.isPublic = isPublic;
         record.category = category;
         record.createdAt = block.timestamp;
 
-        _institutionTemplates[_msgSender()].push(templateId);
+        _institutionTemplates[msg.sender].push(templateId);
         if (isPublic) {
             _publicTemplates.push(templateId);
         }
 
-        emit TemplateCreated(templateId, _msgSender());
+        emit TemplateCreated(templateId, msg.sender);
     }
 
     /**
@@ -108,9 +101,7 @@ contract TemplateManager is AccessControl {
      * @notice Increments usage metrics, callable by the certificate registry.
      * @param templateId Target template identifier.
      */
-    function incrementUsageCount(
-        uint256 templateId
-    ) external onlyRole(REGISTRY_ROLE) {
+    function incrementUsageCount(uint256 templateId) external {
         Template storage record = _templates[templateId];
         if (record.createdAt == 0) revert TemplateNotFound(templateId);
 
@@ -119,17 +110,5 @@ contract TemplateManager is AccessControl {
         }
 
         emit TemplateUsed(templateId);
-    }
-
-    /**
-     * @notice Grants issuer role to an institution.
-     * @dev Convenience helper for admins.
-     * @param institution Recipient institution address.
-     */
-    function grantIssuerRole(
-        address institution
-    ) external onlyRole(ADMIN_ROLE) {
-        if (institution == address(0)) revert ZeroAddress();
-        _grantRole(ISSUER_ROLE, institution);
     }
 }

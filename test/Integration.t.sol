@@ -17,36 +17,15 @@ contract IntegrationTest is Test {
     address internal recipient = address(3);
 
     function setUp() public {
-        vm.prank(admin);
         institutionRegistry = new InstitutionRegistry(admin);
-
-        vm.prank(admin);
         templateManager = new TemplateManager(admin);
-
-        vm.prank(admin);
         registry = new CertificateRegistry(
             address(institutionRegistry),
             admin,
             "ipfs://base/"
         );
 
-        vm.startPrank(admin);
-        institutionRegistry.setCertificateRegistry(address(registry));
-        institutionRegistry.grantRole(
-            institutionRegistry.REGISTRY_ROLE(),
-            address(registry)
-        );
-        registry.grantRole(
-            registry.REGISTRY_ROLE(),
-            address(institutionRegistry)
-        );
-        templateManager.grantRole(
-            templateManager.REGISTRY_ROLE(),
-            address(registry)
-        );
-        templateManager.grantIssuerRole(issuer);
         registry.setTemplateManager(address(templateManager));
-        vm.stopPrank();
     }
 
     function test_EndToEndLifecycle() public {
@@ -56,9 +35,6 @@ contract IntegrationTest is Test {
             "logo",
             "contact"
         );
-
-        vm.prank(admin);
-        institutionRegistry.verifyInstitution(issuer);
 
         vm.prank(issuer);
         uint256 templateId = templateManager.createTemplate(
@@ -70,12 +46,13 @@ contract IntegrationTest is Test {
         vm.prank(issuer);
         uint256 certificateId = registry.issueCertificateWithTemplate(
             recipient,
-            "QmIntegration",
+            "ipfs://QmIntegration",
             "Hackathon",
             templateId
         );
 
         assertEq(registry.balanceOf(recipient, certificateId), 1);
+        assertEq(registry.uri(certificateId), "ipfs://QmIntegration");
 
         InstitutionRegistry.Institution memory info = institutionRegistry
             .getInstitution(issuer);
