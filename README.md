@@ -1,5 +1,12 @@
 # Decentralized Certificate Verification Platform
 
+**On-Chain Addresses (Sepolia Testnet)**
+
+- `CertificateRegistry` — `0xe38C32FC0290ceb5189d4dF130c37d0C82ce876f`
+- `InstitutionRegistry` — `0xD4C4cc66c7FF23260287dc3a3985AA5f6bA7b059`
+- `TemplateManager` — `0x5D61562121d28b772e4f782DC12f61FfCbd861ad`
+- `NameRegistry` — `0xAD96F1220a5Ead242ED3ec774a9FB59e157d8520`
+
 A Foundry-based smart contract suite that issues, manages, and verifies non-transferable certificates on-chain. Institutions can self-register, create reusable certificate templates, mint single or batch certificates, and publish human-readable names so client apps can present wallet owners cleanly.
 
 ## Table of Contents
