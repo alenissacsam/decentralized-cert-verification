@@ -19,52 +19,32 @@ contract IntegrationTest is Test {
     function setUp() public {
         institutionRegistry = new InstitutionRegistry(admin);
         templateManager = new TemplateManager(admin);
-        registry = new CertificateRegistry(
-            address(institutionRegistry),
-            admin,
-            "ipfs://base/"
-        );
+        registry = new CertificateRegistry(address(institutionRegistry), admin, "ipfs://base/");
 
         registry.setTemplateManager(address(templateManager));
     }
 
     function test_EndToEndLifecycle() public {
         vm.prank(issuer);
-        institutionRegistry.registerInstitution(
-            "Integration Uni",
-            "logo",
-            "contact"
-        );
+        institutionRegistry.registerInstitution("Integration Uni", "logo", "contact");
 
         vm.prank(issuer);
-        uint256 templateId = templateManager.createTemplate(
-            "ipfs://template",
-            true,
-            "Hackathon"
-        );
+        uint256 templateId = templateManager.createTemplate("ipfs://template", true, "Hackathon");
 
         vm.prank(issuer);
-        uint256 certificateId = registry.issueCertificateWithTemplate(
-            recipient,
-            "ipfs://QmIntegration",
-            "Hackathon",
-            templateId
-        );
+        uint256 certificateId =
+            registry.issueCertificateWithTemplate(recipient, "ipfs://QmIntegration", "Hackathon", templateId);
 
         assertEq(registry.balanceOf(recipient, certificateId), 1);
         assertEq(registry.uri(certificateId), "ipfs://QmIntegration");
 
-        InstitutionRegistry.Institution memory info = institutionRegistry
-            .getInstitution(issuer);
+        InstitutionRegistry.Institution memory info = institutionRegistry.getInstitution(issuer);
         assertEq(info.totalCertificatesIssued, 1);
 
-        TemplateManager.Template memory tpl = templateManager.getTemplate(
-            templateId
-        );
+        TemplateManager.Template memory tpl = templateManager.getTemplate(templateId);
         assertEq(tpl.usageCount, 1);
 
-        CertificateRegistry.Certificate memory cert = registry
-            .verifyCertificate(certificateId);
+        CertificateRegistry.Certificate memory cert = registry.verifyCertificate(certificateId);
         assertEq(cert.recipient, recipient);
         assertEq(cert.issuer, issuer);
         assertFalse(cert.revoked);

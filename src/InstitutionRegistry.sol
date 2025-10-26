@@ -45,20 +45,14 @@ contract InstitutionRegistry {
      * @param logoIpfsHash IPFS hash for institution logo/branding.
      * @param contactInfo Contact metadata.
      */
-    function registerInstitution(
-        string calldata name,
-        string calldata logoIpfsHash,
-        string calldata contactInfo
-    ) external {
+    function registerInstitution(string calldata name, string calldata logoIpfsHash, string calldata contactInfo)
+        external
+    {
         address institution = msg.sender;
         if (_institutions[institution].registeredAt != 0) {
             revert InstitutionAlreadyRegistered(institution);
         }
-        if (
-            bytes(name).length == 0 ||
-            bytes(logoIpfsHash).length == 0 ||
-            bytes(contactInfo).length == 0
-        ) {
+        if (bytes(name).length == 0 || bytes(logoIpfsHash).length == 0 || bytes(contactInfo).length == 0) {
             revert EmptyField();
         }
 
@@ -88,8 +82,9 @@ contract InstitutionRegistry {
     function verifyInstitution(address institution) external {
         if (institution == address(0)) revert ZeroAddress();
         Institution storage info = _institutions[institution];
-        if (info.registeredAt == 0)
+        if (info.registeredAt == 0) {
             revert InstitutionNotRegistered(institution);
+        }
         if (info.verified) revert InstitutionAlreadyVerified(institution);
 
         info.verified = true;
@@ -103,10 +98,7 @@ contract InstitutionRegistry {
      * @param logoIpfsHash Updated IPFS hash for logo/branding.
      * @param contactInfo Updated contact metadata.
      */
-    function updateInstitutionInfo(
-        string calldata logoIpfsHash,
-        string calldata contactInfo
-    ) external {
+    function updateInstitutionInfo(string calldata logoIpfsHash, string calldata contactInfo) external {
         if (bytes(logoIpfsHash).length == 0 || bytes(contactInfo).length == 0) {
             revert EmptyField();
         }
@@ -127,8 +119,9 @@ contract InstitutionRegistry {
     function incrementCertificateCount(address institution) external {
         if (institution == address(0)) revert ZeroAddress();
         Institution storage info = _institutions[institution];
-        if (info.registeredAt == 0)
+        if (info.registeredAt == 0) {
             revert InstitutionNotRegistered(institution);
+        }
 
         unchecked {
             ++info.totalCertificatesIssued;
@@ -139,13 +132,12 @@ contract InstitutionRegistry {
      * @notice Returns institution information.
      * @param institution Institution address.
      */
-    function getInstitution(
-        address institution
-    ) external view returns (Institution memory) {
+    function getInstitution(address institution) external view returns (Institution memory) {
         if (institution == address(0)) revert ZeroAddress();
         Institution memory info = _institutions[institution];
-        if (info.registeredAt == 0)
+        if (info.registeredAt == 0) {
             revert InstitutionNotRegistered(institution);
+        }
         return info;
     }
 
@@ -163,9 +155,7 @@ contract InstitutionRegistry {
      * @notice Returns institution storage without reverting when missing.
      * @param institution Address to query.
      */
-    function institutionExists(
-        address institution
-    ) external view returns (bool) {
+    function institutionExists(address institution) external view returns (bool) {
         return _institutions[institution].registeredAt != 0;
     }
 }

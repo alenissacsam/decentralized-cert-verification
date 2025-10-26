@@ -17,17 +17,11 @@ contract TemplateManagerTest is Test {
 
     function test_CreateTemplate_Success() public {
         vm.prank(institution);
-        uint256 templateId = manager.createTemplate(
-            "ipfs://template",
-            true,
-            "Hackathon"
-        );
+        uint256 templateId = manager.createTemplate("ipfs://template", true, "Hackathon");
 
         assertEq(templateId, 1);
 
-        TemplateManager.Template memory template = manager.getTemplate(
-            templateId
-        );
+        TemplateManager.Template memory template = manager.getTemplate(templateId);
         assertEq(template.ipfsHash, "ipfs://template");
         assertEq(template.creator, institution);
         assertTrue(template.isPublic);
@@ -58,9 +52,7 @@ contract TemplateManagerTest is Test {
         vm.prank(institution);
         manager.createTemplate("ipfs://template2", false, "Course");
 
-        uint256[] memory templates = manager.getInstitutionTemplates(
-            institution
-        );
+        uint256[] memory templates = manager.getInstitutionTemplates(institution);
         assertEq(templates.length, 2);
         assertEq(templates[0], 1);
         assertEq(templates[1], 2);
@@ -68,17 +60,11 @@ contract TemplateManagerTest is Test {
 
     function test_IncrementUsageCount_Success() public {
         vm.prank(institution);
-        uint256 templateId = manager.createTemplate(
-            "ipfs://template",
-            true,
-            "Hackathon"
-        );
+        uint256 templateId = manager.createTemplate("ipfs://template", true, "Hackathon");
 
         manager.incrementUsageCount(templateId);
 
-        TemplateManager.Template memory template = manager.getTemplate(
-            templateId
-        );
+        TemplateManager.Template memory template = manager.getTemplate(templateId);
         assertEq(template.usageCount, 1);
     }
 }

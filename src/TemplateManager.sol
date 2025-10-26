@@ -42,13 +42,13 @@ contract TemplateManager {
      * @param category Informational category, e.g., "Hackathon".
      * @return templateId Newly created template identifier.
      */
-    function createTemplate(
-        string calldata ipfsHash,
-        bool isPublic,
-        string calldata category
-    ) external returns (uint256 templateId) {
-        if (bytes(ipfsHash).length == 0 || bytes(category).length == 0)
+    function createTemplate(string calldata ipfsHash, bool isPublic, string calldata category)
+        external
+        returns (uint256 templateId)
+    {
+        if (bytes(ipfsHash).length == 0 || bytes(category).length == 0) {
             revert EmptyField();
+        }
 
         templateId = ++templateCounter;
 
@@ -71,9 +71,7 @@ contract TemplateManager {
      * @notice Returns template metadata.
      * @param templateId Template identifier.
      */
-    function getTemplate(
-        uint256 templateId
-    ) external view returns (Template memory) {
+    function getTemplate(uint256 templateId) external view returns (Template memory) {
         Template memory record = _templates[templateId];
         if (record.createdAt == 0) revert TemplateNotFound(templateId);
         return record;
@@ -90,9 +88,7 @@ contract TemplateManager {
      * @notice Returns template identifiers created by an institution.
      * @param institution Target institution address.
      */
-    function getInstitutionTemplates(
-        address institution
-    ) external view returns (uint256[] memory) {
+    function getInstitutionTemplates(address institution) external view returns (uint256[] memory) {
         if (institution == address(0)) revert ZeroAddress();
         return _institutionTemplates[institution];
     }

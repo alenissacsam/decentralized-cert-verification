@@ -35,25 +35,12 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
     ITemplateManager public templateManager;
 
     event CertificateIssued(
-        uint256 indexed certificateId,
-        address indexed issuer,
-        address indexed recipient,
-        string ipfsHash
+        uint256 indexed certificateId, address indexed issuer, address indexed recipient, string ipfsHash
     );
-    event BatchCertificateIssued(
-        uint256[] certificateIds,
-        address indexed issuer,
-        address[] recipients
-    );
-    event CertificateRevoked(
-        uint256 indexed certificateId,
-        address indexed issuer
-    );
+    event BatchCertificateIssued(uint256[] certificateIds, address indexed issuer, address[] recipients);
+    event CertificateRevoked(uint256 indexed certificateId, address indexed issuer);
     event TemplateManagerSet(address indexed templateManager);
-    event CertificateTemplateLinked(
-        uint256 indexed certificateId,
-        uint256 indexed templateId
-    );
+    event CertificateTemplateLinked(uint256 indexed certificateId, uint256 indexed templateId);
 
     error ZeroAddress();
     error EmptyField();
@@ -63,13 +50,10 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
     error InstitutionNotVerified(address institution);
     error TransfersDisabled();
 
-    constructor(
-        address institutionRegistry_,
-        address admin,
-        string memory baseUri
-    ) ERC1155(baseUri) {
-        if (institutionRegistry_ == address(0) || admin == address(0))
+    constructor(address institutionRegistry_, address admin, string memory baseUri) ERC1155(baseUri) {
+        if (institutionRegistry_ == address(0) || admin == address(0)) {
             revert ZeroAddress();
+        }
 
         institutionRegistry = IInstitutionRegistry(institutionRegistry_);
         deployer = admin;
@@ -92,25 +76,21 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
      * @param certificateType Informational classification.
      * @return certificateId Newly minted certificate identifier.
      */
-    function issueCertificate(
-        address recipient,
-        string calldata ipfsHash,
-        string calldata certificateType
-    ) external nonReentrant returns (uint256 certificateId) {
+    function issueCertificate(address recipient, string calldata ipfsHash, string calldata certificateType)
+        external
+        nonReentrant
+        returns (uint256 certificateId)
+    {
         if (recipient == address(0)) revert ZeroAddress();
-        if (bytes(ipfsHash).length == 0 || bytes(certificateType).length == 0)
+        if (bytes(ipfsHash).length == 0 || bytes(certificateType).length == 0) {
             revert EmptyField();
+        }
         address issuer = _msgSender();
         if (!institutionRegistry.verifiedInstitutions(issuer)) {
             revert InstitutionNotVerified(issuer);
         }
 
-        certificateId = _issueCertificateInternal(
-            issuer,
-            recipient,
-            ipfsHash,
-            certificateType
-        );
+        certificateId = _issueCertificateInternal(issuer, recipient, ipfsHash, certificateType);
 
         emit CertificateIssued(certificateId, issuer, recipient, ipfsHash);
     }
@@ -130,19 +110,15 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
         uint256 templateId
     ) external nonReentrant returns (uint256 certificateId) {
         if (recipient == address(0)) revert ZeroAddress();
-        if (bytes(ipfsHash).length == 0 || bytes(certificateType).length == 0)
+        if (bytes(ipfsHash).length == 0 || bytes(certificateType).length == 0) {
             revert EmptyField();
+        }
         address issuer = _msgSender();
         if (!institutionRegistry.verifiedInstitutions(issuer)) {
             revert InstitutionNotVerified(issuer);
         }
 
-        certificateId = _issueCertificateInternal(
-            issuer,
-            recipient,
-            ipfsHash,
-            certificateType
-        );
+        certificateId = _issueCertificateInternal(issuer, recipient, ipfsHash, certificateType);
         emit CertificateIssued(certificateId, issuer, recipient, ipfsHash);
         _linkTemplate(certificateId, templateId);
     }
@@ -169,19 +145,14 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
 
         certificateIds = new uint256[](length);
 
-        for (uint256 i = 0; i < length; ) {
+        for (uint256 i = 0; i < length;) {
             address recipient = recipients[i];
             if (recipient == address(0)) revert ZeroAddress();
 
             string memory hash = ipfsHashes[i];
             if (bytes(hash).length == 0) revert EmptyField();
 
-            uint256 certId = _issueCertificateInternal(
-                issuer,
-                recipient,
-                hash,
-                certificateType
-            );
+            uint256 certId = _issueCertificateInternal(issuer, recipient, hash, certificateType);
             certificateIds[i] = certId;
 
             emit CertificateIssued(certId, issuer, recipient, hash);
@@ -201,11 +172,7 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
         uint256[] calldata templateIds
     ) external nonReentrant returns (uint256[] memory certificateIds) {
         uint256 length = recipients.length;
-        if (
-            length == 0 ||
-            length != ipfsHashes.length ||
-            length != templateIds.length
-        ) {
+        if (length == 0 || length != ipfsHashes.length || length != templateIds.length) {
             revert EmptyField();
         }
         if (bytes(certificateType).length == 0) revert EmptyField();
@@ -216,19 +183,14 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
 
         certificateIds = new uint256[](length);
 
-        for (uint256 i = 0; i < length; ) {
+        for (uint256 i = 0; i < length;) {
             address recipient = recipients[i];
             if (recipient == address(0)) revert ZeroAddress();
 
             string memory hash = ipfsHashes[i];
             if (bytes(hash).length == 0) revert EmptyField();
 
-            uint256 certId = _issueCertificateInternal(
-                issuer,
-                recipient,
-                hash,
-                certificateType
-            );
+            uint256 certId = _issueCertificateInternal(issuer, recipient, hash, certificateType);
             certificateIds[i] = certId;
 
             emit CertificateIssued(certId, issuer, recipient, hash);
@@ -246,9 +208,7 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
      * @notice Returns certificate metadata for verification.
      * @param certificateId Certificate identifier.
      */
-    function verifyCertificate(
-        uint256 certificateId
-    ) external view returns (Certificate memory) {
+    function verifyCertificate(uint256 certificateId) external view returns (Certificate memory) {
         Certificate memory cert = certificates[certificateId];
         if (cert.issuedAt == 0) revert CertificateNotFound(certificateId);
         return cert;
@@ -261,8 +221,9 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
     function revokeCertificate(uint256 certificateId) external {
         Certificate storage cert = certificates[certificateId];
         if (cert.issuedAt == 0) revert CertificateNotFound(certificateId);
-        if (cert.issuer != _msgSender())
+        if (cert.issuer != _msgSender()) {
             revert NotCertificateIssuer(certificateId, _msgSender());
+        }
         if (cert.revoked) revert AlreadyRevoked(certificateId);
 
         cert.revoked = true;
@@ -275,14 +236,12 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
      * @notice Fetches certificate identifiers issued by a specific institution.
      * @param institution Institution address.
      */
-    function getCertificatesByInstitution(
-        address institution
-    ) external view returns (uint256[] memory) {
+    function getCertificatesByInstitution(address institution) external view returns (uint256[] memory) {
         if (institution == address(0)) revert ZeroAddress();
         uint256[] storage stored = _institutionCertificates[institution];
         uint256 length = stored.length;
         uint256[] memory certIds = new uint256[](length);
-        for (uint256 i = 0; i < length; ) {
+        for (uint256 i = 0; i < length;) {
             certIds[i] = stored[i];
             unchecked {
                 ++i;
@@ -295,14 +254,12 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
      * @notice Fetches certificate identifiers held by a recipient wallet.
      * @param recipient Recipient address.
      */
-    function getCertificatesByRecipient(
-        address recipient
-    ) external view returns (uint256[] memory) {
+    function getCertificatesByRecipient(address recipient) external view returns (uint256[] memory) {
         if (recipient == address(0)) revert ZeroAddress();
         uint256[] storage stored = _recipientCertificates[recipient];
         uint256 length = stored.length;
         uint256[] memory certIds = new uint256[](length);
-        for (uint256 i = 0; i < length; ) {
+        for (uint256 i = 0; i < length;) {
             certIds[i] = stored[i];
             unchecked {
                 ++i;
@@ -311,9 +268,7 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
         return certIds;
     }
 
-    function uri(
-        uint256 certificateId
-    ) public view override returns (string memory) {
+    function uri(uint256 certificateId) public view override returns (string memory) {
         Certificate memory cert = certificates[certificateId];
         if (cert.issuedAt == 0) revert CertificateNotFound(certificateId);
 
@@ -330,23 +285,15 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
         return string(abi.encodePacked(base, stored));
     }
 
-    function safeTransferFrom(
-        address,
-        address,
-        uint256,
-        uint256,
-        bytes memory
-    ) public pure override {
+    function safeTransferFrom(address, address, uint256, uint256, bytes memory) public pure override {
         revert TransfersDisabled();
     }
 
-    function safeBatchTransferFrom(
-        address,
-        address,
-        uint256[] memory,
-        uint256[] memory,
-        bytes memory
-    ) public pure override {
+    function safeBatchTransferFrom(address, address, uint256[] memory, uint256[] memory, bytes memory)
+        public
+        pure
+        override
+    {
         revert TransfersDisabled();
     }
 
@@ -377,12 +324,7 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
         institutionRegistry.incrementCertificateCount(issuer);
     }
 
-    function _update(
-        address from,
-        address to,
-        uint256[] memory ids,
-        uint256[] memory values
-    ) internal override {
+    function _update(address from, address to, uint256[] memory ids, uint256[] memory values) internal override {
         if (from != address(0) && to != address(0)) {
             revert TransfersDisabled();
         }
@@ -400,22 +342,15 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
         emit CertificateTemplateLinked(certificateId, templateId);
     }
 
-    function _hasProtocolPrefix(
-        string memory value
-    ) private pure returns (bool) {
+    function _hasProtocolPrefix(string memory value) private pure returns (bool) {
         bytes memory data = bytes(value);
         if (data.length < 7) {
             return false;
         }
 
         if (
-            data[0] == "i" &&
-            data[1] == "p" &&
-            data[2] == "f" &&
-            data[3] == "s" &&
-            data[4] == ":" &&
-            data[5] == "/" &&
-            data[6] == "/"
+            data[0] == "i" && data[1] == "p" && data[2] == "f" && data[3] == "s" && data[4] == ":" && data[5] == "/"
+                && data[6] == "/"
         ) {
             return true;
         }
@@ -424,14 +359,7 @@ contract CertificateRegistry is ERC1155, ReentrancyGuard {
             return false;
         }
 
-        return
-            data[0] == "h" &&
-            data[1] == "t" &&
-            data[2] == "t" &&
-            data[3] == "p" &&
-            data[4] == "s" &&
-            data[5] == ":" &&
-            data[6] == "/" &&
-            data[7] == "/";
+        return data[0] == "h" && data[1] == "t" && data[2] == "t" && data[3] == "p" && data[4] == "s" && data[5] == ":"
+            && data[6] == "/" && data[7] == "/";
     }
 }

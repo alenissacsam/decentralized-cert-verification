@@ -19,15 +19,9 @@ contract ContractInteractions is Script {
     modifier setUp() {
         callerPrivateKey = vm.envUint("CALLER_PRIVATE_KEY");
         caller = vm.addr(callerPrivateKey);
-        institutionRegistry = InstitutionRegistry(
-            vm.envAddress("INSTITUTION_REGISTRY_ADDRESS")
-        );
-        templateManager = TemplateManager(
-            vm.envAddress("TEMPLATE_MANAGER_ADDRESS")
-        );
-        certificateRegistry = CertificateRegistry(
-            vm.envAddress("CERTIFICATE_REGISTRY_ADDRESS")
-        );
+        institutionRegistry = InstitutionRegistry(vm.envAddress("INSTITUTION_REGISTRY_ADDRESS"));
+        templateManager = TemplateManager(vm.envAddress("TEMPLATE_MANAGER_ADDRESS"));
+        certificateRegistry = CertificateRegistry(vm.envAddress("CERTIFICATE_REGISTRY_ADDRESS"));
         nameRegistry = NameRegistry(vm.envAddress("NAME_REGISTRY_ADDRESS"));
         _;
     }
@@ -36,32 +30,19 @@ contract ContractInteractions is Script {
         revert("Select a function using --sig");
     }
 
-    function registerInstitution(
-        string calldata name,
-        string calldata logoIpfsHash,
-        string calldata contactInfo
-    ) external setUp {
+    function registerInstitution(string calldata name, string calldata logoIpfsHash, string calldata contactInfo)
+        external
+        setUp
+    {
         vm.startBroadcast(callerPrivateKey);
-        institutionRegistry.registerInstitution(
-            name,
-            logoIpfsHash,
-            contactInfo
-        );
+        institutionRegistry.registerInstitution(name, logoIpfsHash, contactInfo);
         vm.stopBroadcast();
         console2.log("Registered institution for", caller);
     }
 
-    function createTemplate(
-        string calldata ipfsHash,
-        bool isPublic,
-        string calldata category
-    ) external setUp {
+    function createTemplate(string calldata ipfsHash, bool isPublic, string calldata category) external setUp {
         vm.startBroadcast(callerPrivateKey);
-        uint256 templateId = templateManager.createTemplate(
-            ipfsHash,
-            isPublic,
-            category
-        );
+        uint256 templateId = templateManager.createTemplate(ipfsHash, isPublic, category);
         vm.stopBroadcast();
         console2.log("Created template", templateId);
     }
@@ -75,18 +56,10 @@ contract ContractInteractions is Script {
         vm.startBroadcast(callerPrivateKey);
         uint256 certificateId;
         if (templateId == 0) {
-            certificateId = certificateRegistry.issueCertificate(
-                recipient,
-                ipfsHash,
-                certificateType
-            );
+            certificateId = certificateRegistry.issueCertificate(recipient, ipfsHash, certificateType);
         } else {
-            certificateId = certificateRegistry.issueCertificateWithTemplate(
-                recipient,
-                ipfsHash,
-                certificateType,
-                templateId
-            );
+            certificateId =
+                certificateRegistry.issueCertificateWithTemplate(recipient, ipfsHash, certificateType, templateId);
         }
         vm.stopBroadcast();
         console2.log("Issued certificate", certificateId);
@@ -121,8 +94,8 @@ contract ContractInteractions is Script {
         string calldata certificateType
     ) external setUp {
         vm.startBroadcast(callerPrivateKey);
-        uint256[] memory certificateIds = certificateRegistry
-            .batchIssueCertificates(recipients, ipfsHashes, certificateType);
+        uint256[] memory certificateIds =
+            certificateRegistry.batchIssueCertificates(recipients, ipfsHashes, certificateType);
         vm.stopBroadcast();
         console2.log("Batch issued", certificateIds.length, "certificates");
     }
@@ -134,27 +107,16 @@ contract ContractInteractions is Script {
         uint256[] calldata templateIds
     ) external setUp {
         vm.startBroadcast(callerPrivateKey);
-        uint256[] memory certificateIds = certificateRegistry
-            .batchIssueCertificatesWithTemplates(
-                recipients,
-                ipfsHashes,
-                certificateType,
-                templateIds
-            );
-        vm.stopBroadcast();
-        console2.log(
-            "Batch issued",
-            certificateIds.length,
-            "certificates with templates"
+        uint256[] memory certificateIds = certificateRegistry.batchIssueCertificatesWithTemplates(
+            recipients, ipfsHashes, certificateType, templateIds
         );
+        vm.stopBroadcast();
+        console2.log("Batch issued", certificateIds.length, "certificates with templates");
     }
 
     // ============ Write Functions - Institutions ============
 
-    function updateInstitutionInfo(
-        string calldata logoIpfsHash,
-        string calldata contactInfo
-    ) external setUp {
+    function updateInstitutionInfo(string calldata logoIpfsHash, string calldata contactInfo) external setUp {
         vm.startBroadcast(callerPrivateKey);
         institutionRegistry.updateInstitutionInfo(logoIpfsHash, contactInfo);
         vm.stopBroadcast();
@@ -171,8 +133,7 @@ contract ContractInteractions is Script {
     // ============ Read Functions - Certificates ============
 
     function verifyCertificate(uint256 certificateId) external setUp {
-        CertificateRegistry.Certificate memory cert = certificateRegistry
-            .verifyCertificate(certificateId);
+        CertificateRegistry.Certificate memory cert = certificateRegistry.verifyCertificate(certificateId);
         console2.log("Certificate ID:", certificateId);
         console2.log("Issuer:", cert.issuer);
         console2.log("Recipient:", cert.recipient);
@@ -182,8 +143,7 @@ contract ContractInteractions is Script {
     }
 
     function getCertificatesByInstitution(address institution) external setUp {
-        uint256[] memory certIds = certificateRegistry
-            .getCertificatesByInstitution(institution);
+        uint256[] memory certIds = certificateRegistry.getCertificatesByInstitution(institution);
         console2.log("Institution has certificates:", certIds.length);
         for (uint256 i = 0; i < certIds.length; i++) {
             console2.log("  Certificate ID:", certIds[i]);
@@ -191,8 +151,7 @@ contract ContractInteractions is Script {
     }
 
     function getCertificatesByRecipient(address recipient) external setUp {
-        uint256[] memory certIds = certificateRegistry
-            .getCertificatesByRecipient(recipient);
+        uint256[] memory certIds = certificateRegistry.getCertificatesByRecipient(recipient);
         console2.log("Recipient holds certificates:", certIds.length);
         for (uint256 i = 0; i < certIds.length; i++) {
             console2.log("  Certificate ID:", certIds[i]);
@@ -208,8 +167,7 @@ contract ContractInteractions is Script {
     // ============ Read Functions - Institutions ============
 
     function getInstitution(address institution) external setUp {
-        InstitutionRegistry.Institution memory inst = institutionRegistry
-            .getInstitution(institution);
+        InstitutionRegistry.Institution memory inst = institutionRegistry.getInstitution(institution);
         console2.log("Institution:", institution);
         console2.log("Name:", inst.name);
         console2.log("Contact:", inst.contactInfo);
@@ -225,9 +183,7 @@ contract ContractInteractions is Script {
     // ============ Read Functions - Templates ============
 
     function getTemplate(uint256 templateId) external setUp {
-        TemplateManager.Template memory tmpl = templateManager.getTemplate(
-            templateId
-        );
+        TemplateManager.Template memory tmpl = templateManager.getTemplate(templateId);
         console2.log("Template ID:", templateId);
         console2.log("Creator:", tmpl.creator);
         console2.log("Public:", tmpl.isPublic);
@@ -245,9 +201,7 @@ contract ContractInteractions is Script {
     }
 
     function getInstitutionTemplates(address institution) external setUp {
-        uint256[] memory templates = templateManager.getInstitutionTemplates(
-            institution
-        );
+        uint256[] memory templates = templateManager.getInstitutionTemplates(institution);
         console2.log("Institution created templates:", templates.length);
         for (uint256 i = 0; i < templates.length; i++) {
             console2.log("  Template ID:", templates[i]);
