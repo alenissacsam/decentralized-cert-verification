@@ -6,6 +6,8 @@
 - `InstitutionRegistry` — `0xD4C4cc66c7FF23260287dc3a3985AA5f6bA7b059`
 - `TemplateManager` — `0x5D61562121d28b772e4f782DC12f61FfCbd861ad`
 - `NameRegistry` — `0xAD96F1220a5Ead242ED3ec774a9FB59e157d8520`
+- `GuardianAccount` — `TBD`
+- `GuardianRecovery` — `TBD`
 
 A Foundry-based smart contract suite that issues, manages, and verifies non-transferable certificates on-chain. Institutions can self-register, create reusable certificate templates, mint single or batch certificates, and publish human-readable names so client apps can present wallet owners cleanly.
 
@@ -51,6 +53,7 @@ Everything is open-access to streamline hackathon and demo flows. Institutions a
 - **Name Registry** – Map wallet addresses to human-readable display names for UI consumption.
 - **Scriptable Tooling** – Makefile targets wrap Foundry scripts for repeatable interactions and deployments.
 - **Full Test Coverage** – Unit and integration suites cover all critical flows with `forge test` and `forge coverage` support.
+- **Guardian Recovery** – Smart-account abstraction with guardian consensus ownership recovery for end-user safety.
 
 ## Smart Contracts
 
@@ -60,6 +63,8 @@ Everything is open-access to streamline hackathon and demo flows. Institutions a
 | `InstitutionRegistry` | Institution onboarding & verification   | Auto-verifies new registrants, tracks issuance counts, exposes read APIs for frontends.                   |
 | `TemplateManager`     | Certificate template lifecycle          | Creates templates (private/public), lists catalogs, increments usage when linked during issuance.         |
 | `NameRegistry`        | Human-readable wallet names             | Let wallets set/clear a display name that UIs can read without additional off-chain services.             |
+| `GuardianAccount`     | Smart account with owner abstraction    | Executes arbitrary calls, assigns recovery modules, and emits execution telemetry.                        |
+| `GuardianRecovery`    | Guardian consensus recovery module      | Stores guardian sets, validates approvals, and finalises ownership recovery when thresholds are met.      |
 
 ### CertificateRegistry Highlights
 
@@ -83,6 +88,18 @@ Everything is open-access to streamline hackathon and demo flows. Institutions a
 
 - `setName`/`clearName` let wallets self-manage the string presented to users.
 - `getName` is read-only for UIs to resolve wallet addresses.
+
+### GuardianAccount Highlights
+
+- `execute` performs arbitrary calls from the account with owner authorization only.
+- `setGuardianModule` assigns a recovery module that can rotate the owner after consensus.
+- `guardianRecover` is callable exclusively by the configured module once recovery finalises.
+
+### GuardianRecovery Highlights
+
+- `configureGuardians` lets accounts define guardian sets and approval thresholds.
+- `initiateRecovery` and `approveRecovery` collect guardian votes while preventing double approvals.
+- `cancelRecovery` clears active sessions, and successful consensus triggers `guardianRecover` automatically.
 
 ## System Workflow
 
@@ -129,6 +146,10 @@ MAINNET_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/KEY
 DEPLOYER_PRIVATE_KEY=0x...
 ADMIN_PRIVATE_KEY=0x...
 CALLER_PRIVATE_KEY=0x...
+ADMIN_ADDRESS=0x...
+CERTIFICATE_BASE_URI=ipfs://base-uri/
+GUARDIAN_ADDRESSES=0xGuardian1,0xGuardian2,0xGuardian3
+GUARDIAN_THRESHOLD=2
 
 # Optional verification & convenience
 BLOCKSCOUT_API_KEY=https://eth-sepolia.blockscout.com/api
@@ -175,6 +196,8 @@ The deployment script (`script/Deploy.s.sol`) deploys the four core contracts an
 2. `TemplateManager`
 3. `CertificateRegistry` (wired to the institution registry)
 4. `NameRegistry`
+5. `GuardianRecovery` (configured as the guardian module)
+6. `GuardianAccount`
 
 Post-deployment, addresses are printed so you can update `.env` and the frontend configuration.
 
